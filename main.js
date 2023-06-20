@@ -23,6 +23,11 @@ renderer.setClearColor(new THREE.Color(0, .1, .7));
 renderer.setSize( window.innerWidth, window.innerHeight );
 document.body.appendChild( renderer.domElement );
 
+const treeHeight = 2.5;
+const trunk = new THREE.ConeGeometry( .5, treeHeight, 5 );
+const leaves = new THREE.IcosahedronGeometry( treeHeight/3, 0 );
+const leaves2 = new THREE.IcosahedronGeometry( treeHeight/3, 0 );
+
 const torchHeight = 1.7;
 const torchModel = new THREE.CylinderGeometry( .2, .4, torchHeight, 4);
 const fireModel = new THREE.ConeGeometry( .2, .5, 5 );
@@ -65,6 +70,7 @@ for (var i = 0; i < positions.array.length/3; i++)
         positions.setXYZ(i, positions.getX(i)*0.9, positions.getY(i), positions.getZ(i)*0.9);
 
 const headModel = new THREE.IcosahedronGeometry( headHeight/2, 0 );
+const faceModel = new THREE.PlaneGeometry( headHeight/1.5, headHeight/1.5, 1, 1 );
 const hairModel = new THREE.IcosahedronGeometry( headHeight/1.9, 0 );
 const upperLegModel = new THREE.CapsuleGeometry( legWidth/2., .4, 1 );
 upperLegModel.translate(0,-.2,0);
@@ -126,19 +132,186 @@ var nEnemies = 4;
 var slainEnemies = 0;
 var torches = [];
 
-textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump.jpg', function(texture) {
-    const greenFabric = new THREE.MeshPhongMaterial( {color: 0x007700, specular: 0x999999, shininess: 20, bumpMap: texture} );
-    const brownFabric = new THREE.MeshPhongMaterial( {color: 0xa85e32, specular: 0x999999, shininess: 20, bumpMap: texture} );
+textureLoader.load('images/enemy.jpg', function(texture) {
+    for (var i = 0; i < nEnemies; i++){
+        var enemyMat = new THREE.MeshPhongMaterial( {color: 0xefcb64, specular: 0x999999, shininess: 50, map: texture} );
+        var enemyBody = new THREE.Mesh(enemyModel, enemyMat);
+        var enemyBody2 = new THREE.Mesh(enemyModel2, enemyMat);
+        enemyBody.add(enemyBody2);
+        enemyBody2.position.y -= abdomenHeight * 1.5;
+        var enemyBody3 = new THREE.Mesh(enemyModel3, enemyMat);
+        enemyBody2.add(enemyBody3);
+        enemyBody3.position.y -= abdomenHeight;
+
+        let f = function (o) {enemies[o.i].scale.y = o.s; enemies[o.i].rotation.x = (1 - o.s)-.1; enemies[o.i].rotation.z = (1 - o.s)-.1; enemies[o.i].scale.z = 2 - o.s; enemies[o.i].scale.x = 2- o.s};
+        var e1 = new TWEEN.Tween({s: 1, i: i}).to({s: .7}, 300).onUpdate(f);
+        var e2 = new TWEEN.Tween({s: .7, i: i}).to({s: 1}, 300).onUpdate(f);
+        
+        e1.chain(e2);
+        e2.chain(e1);
+        e1.start();
+
+        var initR = enemyBody.material.color.r;
+        var initG = enemyBody.material.color.g;
+        var initB = enemyBody.material.color.b;
+        var c1 = new TWEEN.Tween({r: initR, i: i}).to({r: 1}, 300).onUpdate(function (o) {enemies[o.i].material.color.set(o.r, initG*Math.pow(initR/o.r,10), initB *Math.pow(initR/o.r,10))});
+        var c2 = new TWEEN.Tween({r: 1, i: i}).to({r: initR}, 300).onUpdate(function (o) {enemies[o.i].material.color.set(o.r, initG*Math.pow(initR/o.r,10), initB *Math.pow(initR/o.r,10))});
+
+        c1.chain(c2);
+        enemyBody.colourAnimation = c1;
+
+        enemies[i] = enemyBody;
+        enemyBody.spawned = false;
+        enemyBody.hp = 0;
+
+        enemyBody.position.x = caveLength/2*(Math.random()-0.5);
+        enemyBody.position.z = caveLength/2*(Math.random()-0.5);
+        enemyBody.position.y = -abdomenHeight*2;
+    }
+});
+
+textureLoader.load('images/grass.avif', function(texture) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat = new THREE.Vector2(15, 15);
+    const grass = new THREE.MeshPhongMaterial( {color: 0x00ee00, specular: 0x111111, shininess: 5, map: texture, bumpMap: texture, bumpScale: .2} );
+    
+    terrain = new THREE.Mesh( terrainModel, grass );
+    terrain.rotation.x = -3.14/2;
+    terrain.position.y -= 1;
+    scene.add( terrain );
+});
+
+textureLoader.load('images/tiling.jpg', function(texture) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat = new THREE.Vector2(3, 5);
+    const dungeonGroundMat = new THREE.MeshPhongMaterial( {color: 0x664d39, specular: 0x111111, shininess: 10, bumpMap: texture} );
+
+    dungeonGround = new THREE.Mesh( wallModel, dungeonGroundMat );
+    dungeonGround.rotation.y = 3.14;
+    dungeonGround.rotation.x = 3.14/2;
+    dungeonGround.position.y = -1;
+});
+
+textureLoader.load('images/arches.png', function(texture) {
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.repeat = new THREE.Vector2(2, 4);
+    const dungeonWallMat = new THREE.MeshPhongMaterial( {color: 0x7b2101, specular: 0x111111, shininess: 5, map: texture, bumpMap: texture, bumpScale: .05} );
+    
+    dungeonWallZ = new THREE.Mesh( wallModel, dungeonWallMat );
+    dungeonWallZ.rotation.y = 3.14;
+    dungeonWallZ.position.y = caveLength/2 - 1;
+    dungeonWallZ.position.z = caveLength/2;
+    
+    dungeonWallX = new THREE.Mesh( wallModel, dungeonWallMat );
+    dungeonWallX.rotation.y = 3.14 + -3.14/2;
+    dungeonWallX.position.y = caveLength/2 - 1;
+    dungeonWallX.position.x = -caveLength/2;
+    
+    dungeonWallX2 = new THREE.Mesh( wallModel, dungeonWallMat );
+    dungeonWallX2.rotation.y = 3.14 + 3.14/2;
+    dungeonWallX2.position.y = caveLength/2 - 1;
+    dungeonWallX2.position.x = caveLength/2;
+});
+
+var decoration = [];
+textureLoader.load('images/wood.webp', function(texture) {
+    const stripes = new THREE.TextureLoader().load( "images/stripes.png" );
+    const leavesNorm = new THREE.TextureLoader().load( "images/hairNormal.jpg" );
+    const torchMat = new THREE.MeshPhongMaterial( {color: 0x624f39, specular: 0x111111, shininess: 10, map: texture, normalMap: stripes} );
+    const leafMat = new THREE.MeshPhongMaterial( {color: 0x008800, specular: 0x111111, shininess: 10, normalMap: leavesNorm} );
+        
+    var torchUR = new THREE.Mesh( torchModel, torchMat);
+    torchUR.position.y = -.3;
+    torchUR.position.z = 6;
+    torchUR.position.x = 3;
+    torches[0] = torchUR;
+
+    var torchUL = new THREE.Mesh( torchModel, torchMat);
+    torchUL.position.y -= .3;
+    torchUL.position.z = 6;
+    torchUL.position.x = -3;
+    torches[1] = torchUL;
+
+    var torchDR = new THREE.Mesh( torchModel, torchMat);
+    torchDR.position.y -= .3;
+    torchDR.position.z = 2;
+    torchDR.position.x = 1.5;
+    torches[2] = torchDR;
+
+    var torchDL = new THREE.Mesh( torchModel, torchMat);
+    torchDL.position.y -= .3;
+    torchDL.position.z = 2;
+    torchDL.position.x = -1.5;
+    torches[3] = torchDL;
+
+    function genTree(){
+        var tree = new THREE.Mesh( trunk, torchMat);
+        var tree1 = new THREE.Mesh( leaves, leafMat);
+        var tree2 = new THREE.Mesh( leaves2, leafMat);
+        tree2.position.y = 1.;
+        tree2.rotation.y = 3.14/2;
+        tree1.position.y = 1.;
+        tree.add(tree1);
+        tree1.add(tree2);
+        tree.scale.y = 2;
+        tree.scale.x = 2;
+        tree.scale.z = 2;
+        tree.position.y = .9;
+        scene.add(tree);
+
+        var t1 = new TWEEN.Tween(tree1.rotation).to({z: 3.14/30}, 2000)
+        var t2 = new TWEEN.Tween(tree1.rotation).to({z: 0}, 2000)
+        var ts1 = new TWEEN.Tween(tree1.scale).to({x: 1.1}, 2000)
+        var ts2 = new TWEEN.Tween(tree1.scale).to({x: 1}, 2000)
+        t1.chain(t2);
+        t2.chain(t1);
+        t1.start();
+        ts1.chain(ts2);
+        ts2.chain(ts1);
+        ts1.start();
+        return tree;
+    }
+    var tree = genTree();
+    tree.position.z = 6;
+    tree.position.x = 4.5;
+    decoration[0] = tree;
+
+    tree = genTree();
+    tree.position.z = 7;
+    tree.position.x = 3;
+    decoration[1] = tree;
+    
+    tree = genTree();
+    tree.position.z = 8;
+    tree.position.x = 0.5;
+    decoration[2] = tree;
+    
+    tree = genTree();
+    tree.position.z = 4;
+    tree.position.x = 7.2;
+    decoration[3] = tree;
+
+    tree = genTree();
+    tree.position.z = 2;
+    tree.position.x = 7.5;
+    decoration[4] = tree;
+
+    tree = genTree();
+    tree.position.z = 7;
+    tree.position.x = -4;
+    decoration[5] = tree;
+});
+
+textureLoader.load('images/fabric.avif', function(texture) {
+    const greenFabric = new THREE.MeshPhongMaterial( {color: 0x008800, specular: 0x111111, shininess: 10, bumpMap: texture, bumpScale: .3} );
+    const brownFabric = new THREE.MeshPhongMaterial( {color: 0x984e22, specular: 0x111111, shininess: 10, bumpMap: texture, bumpScale: .3} );
     const crossGuardMat = new THREE.MeshPhongMaterial( {color: 0x9e42f5, specular: 0x999999, shininess: 20} );
     const bladeMat = new THREE.MeshPhongMaterial( {color: 0x999999, specular: 0xffffff, shininess: 100} );
-    const grass = new THREE.MeshPhongMaterial( {color: 0x007700, specular: 0x555555, shininess: 10} );
     const skin = new THREE.MeshPhongMaterial( {color: 0xffdd96, specular: 0x111111, shininess: 10} );
-    const hairMat = new THREE.MeshPhongMaterial( {color: 0xfff942, specular: 0x111111, shininess: 10} );
-    const elderHairMat = new THREE.MeshPhongMaterial( {color: 0x999999, specular: 0x111111, shininess: 10} );
     const bootMat = new THREE.MeshPhongMaterial( {color: 0x8f3e00, specular: 0x111111, shininess: 10} );
-    const dungeonGroundMat = new THREE.MeshPhongMaterial( {color: 0x664d39, specular: 0x111111, shininess: 10} );
-    const dungeonWallMat = new THREE.MeshPhongMaterial( {color: 0x6b2101, specular: 0x111111, shininess: 10} );
-    const torchMat = new THREE.MeshPhongMaterial( {color: 0x422f19, specular: 0x111111, shininess: 10} );
     const triforceMat = new THREE.MeshPhongMaterial( {color: 0xffff00, specular: 0xffffff, shininess: 100} );
 
     var triforce = new THREE.Mesh( triforcePieceModel, triforceMat);
@@ -153,30 +326,6 @@ textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump
     triforce.add(triforce3);
     triforce3.position.x = -.2;
     triforce3.position.z = -.4;
-    
-    var torchUR = new THREE.Mesh( torchModel, torchMat);
-    torchUR.position.y = -.3;
-    torchUR.position.z = 6;
-    torchUR.position.x = 3;
-    torches[0] = torchUR;
-    
-    var torchUL = new THREE.Mesh( torchModel, torchMat);
-    torchUL.position.y -= .3;
-    torchUL.position.z = 6;
-    torchUL.position.x = -3;
-    torches[1] = torchUL;
-    
-    var torchDR = new THREE.Mesh( torchModel, torchMat);
-    torchDR.position.y -= .3;
-    torchDR.position.z = 2;
-    torchDR.position.x = 1.5;
-    torches[2] = torchDR;
-    
-    var torchDL = new THREE.Mesh( torchModel, torchMat);
-    torchDL.position.y -= .3;
-    torchDL.position.z = 2;
-    torchDL.position.x = -1.5;
-    torches[3] = torchDL;
 
     cavePortal = new THREE.Mesh( cavePortalModel, new THREE.MeshBasicMaterial({color: 0x000000}));
     scene.add(cavePortal);
@@ -200,10 +349,6 @@ textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump
     const elderHead = new THREE.Mesh( elderheadModel, skin );
     elderChest.add(elderHead);
     elderHead.position.y = .45;
-
-    const elderHair = new THREE.Mesh( elderhairModel, elderHairMat );
-    elderHead.add(elderHair);
-    elderHair.position.z = -.01;
 
     elderArmR = new THREE.Mesh( elderArmModel, brownFabric );
     elder.add(elderArmR);
@@ -271,67 +416,6 @@ textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump
     blade.position.y = abdomenHeight/2+.07
     blade.add(blade2);
 
-    for (var i = 0; i < nEnemies; i++){
-        var enemyMat = new THREE.MeshPhongMaterial( {color: 0xeb9b34, specular: 0x999999, shininess: 50} );
-        var enemyBody = new THREE.Mesh(enemyModel, enemyMat);
-        var enemyBody2 = new THREE.Mesh(enemyModel2, enemyMat);
-        enemyBody.add(enemyBody2);
-        enemyBody2.position.y -= abdomenHeight * 1.5;
-        var enemyBody3 = new THREE.Mesh(enemyModel3, enemyMat);
-        enemyBody2.add(enemyBody3);
-        enemyBody3.position.y -= abdomenHeight;
-
-        let f = function (o) {enemies[o.i].scale.y = o.s; enemies[o.i].rotation.x = (1 - o.s)-.1; enemies[o.i].rotation.z = (1 - o.s)-.1; enemies[o.i].scale.z = 2 - o.s; enemies[o.i].scale.x = 2- o.s};
-        var e1 = new TWEEN.Tween({s: 1, i: i}).to({s: .7}, 300).onUpdate(f);
-        var e2 = new TWEEN.Tween({s: .7, i: i}).to({s: 1}, 300).onUpdate(f);
-        
-        e1.chain(e2);
-        e2.chain(e1);
-        e1.start();
-
-        var initR = enemyBody.material.color.r;
-        var initG = enemyBody.material.color.g;
-        var initB = enemyBody.material.color.b;
-        var c1 = new TWEEN.Tween({r: initR, i: i}).to({r: 1}, 300).onUpdate(function (o) {enemies[o.i].material.color.set(o.r, initG*Math.pow(initR/o.r,10), initB *Math.pow(initR/o.r,10))});
-        var c2 = new TWEEN.Tween({r: 1, i: i}).to({r: initR}, 300).onUpdate(function (o) {enemies[o.i].material.color.set(o.r, initG*Math.pow(initR/o.r,10), initB *Math.pow(initR/o.r,10))});
-
-        c1.chain(c2);
-        enemyBody.colourAnimation = c1;
-
-        enemies[i] = enemyBody;
-        enemyBody.spawned = false;
-        enemyBody.hp = 0;
-
-        enemyBody.position.x = caveWidth*(Math.random()-0.5);
-        enemyBody.position.z = caveWidth*(Math.random()-0.5);
-        enemyBody.position.y = -abdomenHeight*2;
-    }
-
-    dungeonGround = new THREE.Mesh( wallModel, dungeonGroundMat );
-    dungeonGround.rotation.y = 3.14;
-    dungeonGround.rotation.x = 3.14/2;
-    dungeonGround.position.y = -1;
-
-    dungeonWallZ = new THREE.Mesh( wallModel, dungeonWallMat );
-    dungeonWallZ.rotation.y = 3.14;
-    dungeonWallZ.position.y = caveLength/2 - 1;
-    dungeonWallZ.position.z = caveLength/2;
-    
-    dungeonWallX = new THREE.Mesh( wallModel, dungeonWallMat );
-    dungeonWallX.rotation.y = 3.14 + -3.14/2;
-    dungeonWallX.position.y = caveLength/2 - 1;
-    dungeonWallX.position.x = -caveLength/2;
-    
-    dungeonWallX2 = new THREE.Mesh( wallModel, dungeonWallMat );
-    dungeonWallX2.rotation.y = 3.14 + 3.14/2;
-    dungeonWallX2.position.y = caveLength/2 - 1;
-    dungeonWallX2.position.x = caveLength/2;
-
-    terrain = new THREE.Mesh( terrainModel, grass );
-    terrain.rotation.x = -3.14/2;
-    terrain.position.y -= 1;
-    scene.add( terrain );
-
     abdomen = new THREE.Mesh( abdomenModel, greenFabric );
     scene.add( abdomen );
     abdomen.hp = 3;
@@ -343,11 +427,34 @@ textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump
     const head = new THREE.Mesh( headModel, skin );
     chest.add(head);
     head.position.y = .45;
+    
+    textureLoader.load('images/face.png', function(texture) {
+        const faceMat = new THREE.MeshPhongMaterial( {specular: 0x111111, shininess: 10, map: texture, transparent: true} );
+        const face = new THREE.Mesh( faceModel, faceMat );
+        head.add(face);
+        face.position.z = .16;
 
-    const hair = new THREE.Mesh( hairModel, hairMat );
-    head.add(hair);
-    hair.position.y = .07;
-    hair.position.z = -.01;
+        const faceElder = new THREE.Mesh( faceModel, faceMat );
+        elderHead.add(faceElder);
+        faceElder.position.z = .16;
+    });
+    
+    textureLoader.load('images/hairNormal.jpg', function(texture) {
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        texture.repeat = new THREE.Vector2(2, 2);
+        const hairMat = new THREE.MeshPhongMaterial( {color: 0xfff942, specular: 0x111111, shininess: 10, normalMap: texture} );
+        const elderHairMat = new THREE.MeshPhongMaterial( {color: 0x999999, specular: 0x111111, shininess: 10, normalMap: texture} );
+
+        const hair = new THREE.Mesh( hairModel, hairMat );
+        head.add(hair);
+        hair.position.y = .07;
+        hair.position.z = -.01;
+        
+        const elderHair = new THREE.Mesh( elderhairModel, elderHairMat );
+        elderHead.add(elderHair);
+        elderHair.position.z = -.01;
+    });
 
     const hat = new THREE.Mesh( hatModel2, greenFabric );
     head.add(hat);
@@ -420,7 +527,7 @@ textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump
     }
 
     var walking = false;
-    var timePerFrame = 500;
+    var timePerFrame = 250;
     var ull1 = new TWEEN.Tween(upperLegL.rotation).to({x: -3.14/10}, timePerFrame)
     var lll1 = new TWEEN.Tween(lowerLegL.rotation).to({x: 3.14/2}, timePerFrame)
     var ulr1 = new TWEEN.Tween(upperLegR.rotation).to({x: 0}, timePerFrame)
@@ -607,7 +714,7 @@ textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump
     });
 
     window.addEventListener("click", function (event) {
-        a7 = new TWEEN.Tween(abdomen.position).to(add(abdomen.position, mult(bodyDirection, .2)), timePerFrame);
+        a7 = new TWEEN.Tween(abdomen.position).to(add(abdomen.position, mult(bodyDirection, .2)), 600);
         
         enemies.forEach(enemy => {
             var diff = add(abdomen.position, mult(enemy.position, -1));
@@ -632,6 +739,7 @@ textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump
                     for (var i = 0; i < nTorches; i++){
                         if (torches[i].kindled == undefined){
                             var fire = new THREE.Mesh( fireModel, new THREE.MeshBasicMaterial({color: 0xff0000}));
+                            var light = new THREE.PointLight( 0xff0000, 2, 10 );
                             
                             var f1 = new TWEEN.Tween(fire.scale).to({y: 2}, 500);
                             var f2 = new TWEEN.Tween(fire.scale).to({y: 1}, 500);
@@ -640,6 +748,7 @@ textureLoader.load('https://s3-us-west-2.amazonaws.com/s.cdpn.io/53148/4268-bump
                             f1.start();
                             fire.position.y += torchHeight - .6;
                             torches[i].add(fire);
+                            fire.add( light );
                             torches[i].kindled = true;
                             
 
@@ -676,7 +785,7 @@ scene.add(camera);
 var enemies = [];
 var gotSword = false;
 var inCave = false;
-var sunLight = new THREE.DirectionalLight( 0xffffff, 0.5 );
+var sunLight = new THREE.DirectionalLight( 0xffffff, 0.4 );
 scene.add(sunLight);
 const ambientLight = new THREE.AmbientLight( 0x909090 ); // soft white light
 scene.add( ambientLight );
@@ -694,8 +803,6 @@ function animate() {
     
                 enemy.position.x += direction.x * .01;
                 enemy.position.z += direction.z * .01;
-                //enemy.position.y = 0;//terrainHeight(enemy.position.x, enemy.position.z)
-                
     
                 if (distance < .3){
                     var initR = abdomen.material.color.r + .01;
@@ -716,12 +823,13 @@ function animate() {
             }
         });
         
-        abdomen.position.z += movDirection.z * .01;
-        abdomen.position.x += movDirection.x * .01;
-        if ((!inCave && dist(abdomen.position) > plainsRadius) || (inCave && abdomen.position.z > caveWidth/2 || inCave && abdomen.position.x > caveWidth/2)){
-            abdomen.position.z -= movDirection.z * .01;
-            abdomen.position.x -= movDirection.x * .01;
+        abdomen.position.z += movDirection.z * .015;
+        abdomen.position.x += movDirection.x * .015;
+        if ((!inCave && dist(abdomen.position) > plainsRadius) || (inCave && abdomen.position.z > caveLength/2 || inCave && abdomen.position.x > caveLength/2)){
+            abdomen.position.z -= movDirection.z * .015;
+            abdomen.position.x -= movDirection.x * .015;
         }
+
         
         if (!gotSword){
             var diff = add(abdomen.position, mult(elder.position, -1));
@@ -773,6 +881,9 @@ function animate() {
             scene.remove(terrain);
             scene.remove(elder);
             scene.remove(cavePortal);
+            decoration.forEach(element => {
+                scene.remove(element);
+            });
 
             scene.add(dungeonGround);
             scene.add(dungeonWallX);
