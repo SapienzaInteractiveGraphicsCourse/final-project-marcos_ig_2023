@@ -869,7 +869,7 @@ function animate() {
         
         abdomen.position.z += movDirection.z * .015;
         abdomen.position.x += movDirection.x * .015;
-        if ((!inCave && dist(abdomen.position) > plainsRadius) || (inCave && abdomen.position.z > caveLength/2 || inCave && abdomen.position.x > caveLength/2)){
+        if (abdomen.position.z < -4 || (!inCave && dist(abdomen.position) > plainsRadius) || (inCave && abdomen.position.z > caveLength/2 || inCave && abdomen.position.x > caveLength/2 || inCave && abdomen.position.x < -caveLength/2)){
             abdomen.position.z -= movDirection.z * .015;
             abdomen.position.x -= movDirection.x * .015;
         }
