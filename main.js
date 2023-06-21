@@ -54,6 +54,7 @@ elderArmModel.translate(0,-.2,0);
 const elderHandModel = new THREE.IcosahedronGeometry( legWidth/3., 0 );
 
 const hatModel = new THREE.ConeGeometry( headHeight/2, headHeight*2.5, 5 );
+hatModel.translate(0, .5, 0);
 const hatModel2 = new THREE.IcosahedronGeometry( headHeight/2, 1 );
 const abdomenModel = new THREE.BoxGeometry( .5, abdomenHeight, .3 );
 var positions = abdomenModel.attributes.position;
@@ -120,17 +121,25 @@ for (var i = 0; i < positions.array.length/3; i++)
 positions.needsUpdate = true;
 terrainModel.computeVertexNormals();
 var abdomen;
-var lowerArmL, elderArmR, elderArmL;
+var lowerArmL, elderArmR, elderArmL, elderHandL;
 var crossGuard;
 var elder;
-var terrain, cavePortal;
+var terrain, cavePortal, triforce;
 var dungeonGround, dungeonWallZ, dungeonWallX, dungeonWallX2;
 
 var textureLoader = new THREE.TextureLoader();
 textureLoader.crossOrigin = true;
-var nEnemies = 4;
+var nEnemies = new URLSearchParams(window.location.search).get('difficulty');
+if (nEnemies == null)
+    nEnemies = 4;
+
 var slainEnemies = 0;
 var torches = [];
+
+
+document.getElementById("apply").addEventListener("click", function (event) {
+    window.location.search = '&difficulty=' + document.getElementById("difficulty").value;
+});
 
 textureLoader.load('images/enemy.jpg', function(texture) {
     for (var i = 0; i < nEnemies; i++){
@@ -314,7 +323,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
     const bootMat = new THREE.MeshPhongMaterial( {color: 0x8f3e00, specular: 0x111111, shininess: 10} );
     const triforceMat = new THREE.MeshPhongMaterial( {color: 0xffff00, specular: 0xffffff, shininess: 100} );
 
-    var triforce = new THREE.Mesh( triforcePieceModel, triforceMat);
+    triforce = new THREE.Mesh( triforcePieceModel, triforceMat);
     triforce.rotation.x = -3.14/2;
     triforce.position.z = 5;
     triforce.position.y = 8;
@@ -355,7 +364,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
     elderArmR.position.x = .25;
     elderArmR.position.y = abdomenHeight;
     elderArmR.rotation.x = -3.14/4;
-    
+
     elderArmL = new THREE.Mesh( elderArmModel, brownFabric );
     elder.add(elderArmL);
     elderArmL.position.x = -.25;
@@ -366,7 +375,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
     elderArmR.add(elderHandR);
     elderHandR.position.y = -.45;
 
-    const elderHandL = new THREE.Mesh( elderHandModel, skin );
+    elderHandL = new THREE.Mesh( elderHandModel, skin );
     elderArmL.add(elderHandL);
     elderHandL.position.y = -.45;
     
@@ -397,6 +406,19 @@ textureLoader.load('images/fabric.avif', function(texture) {
     ell3.chain(ell2);
     elder.walkAnimL = ell1;
 
+    
+    var el1 = new TWEEN.Tween(elder.rotation).to({y: 3.14 + 3.14/4}, 1000)
+    var el2 = new TWEEN.Tween(elder.position).to({x: -5, z: -5}, 10000)
+    var el12 = new TWEEN.Tween(elderArmL.rotation).to({x: 3.14/8, z: 3.14/16}, 1000)
+    var el13 = new TWEEN.Tween(elderArmR.rotation).to({x: 3.14/8, z: -3.14/16}, 1000)
+    el1.chain(el2);
+    
+    elder.startTranslate = function () {
+        el1.start();
+        el12.start();
+        el13.start();
+    }
+
     crossGuard = new THREE.Mesh( crossGuardModel, crossGuardMat );
     elderHandL.add(crossGuard);
     const crossGuard2 = new THREE.Mesh( crossGuardModel2, crossGuardMat );
@@ -423,6 +445,12 @@ textureLoader.load('images/fabric.avif', function(texture) {
     const chest = new THREE.Mesh( chestModel, greenFabric );
     abdomen.add(chest);
     chest.position.y = .35;
+    
+    var c1 = new TWEEN.Tween(chest.scale).to({y: 1.05}, 2000)
+    var c2 = new TWEEN.Tween(chest.scale).to({y: 1}, 2000)
+    c1.chain(c2);
+    c2.chain(c1);
+    c1.start();
 
     const head = new THREE.Mesh( headModel, skin );
     chest.add(head);
@@ -464,7 +492,6 @@ textureLoader.load('images/fabric.avif', function(texture) {
 
     const hat2 = new THREE.Mesh( hatModel, greenFabric );
     hat.add(hat2);
-    hat2.position.y = .5;
 
     const upperLegR = new THREE.Mesh( upperLegModel, skin );
     abdomen.add(upperLegR);
@@ -533,60 +560,70 @@ textureLoader.load('images/fabric.avif', function(texture) {
     var ulr1 = new TWEEN.Tween(upperLegR.rotation).to({x: 0}, timePerFrame)
     var uar1 = new TWEEN.Tween(upperArnR.rotation).to({x: 0}, timePerFrame)
     var ual1 = new TWEEN.Tween(upperArnL.rotation).to({x: 0}, timePerFrame)
+    var h1 = new TWEEN.Tween(hat2.rotation).to({z: 0}, timePerFrame)
     
     var ull2 = new TWEEN.Tween(upperLegL.rotation).to({x: -3.14/10}, timePerFrame)
     var lll2 = new TWEEN.Tween(lowerLegL.rotation).to({x: 0}, timePerFrame)
     var ulr2 = new TWEEN.Tween(upperLegR.rotation).to({x: 3.14/8}, timePerFrame)
     var uar2 = new TWEEN.Tween(upperArnR.rotation).to({x: -3.14/4}, timePerFrame)
     var ual2 = new TWEEN.Tween(upperArnL.rotation).to({x: 3.14/8}, timePerFrame)
+    var h2 = new TWEEN.Tween(hat2.rotation).to({z: -3.14/10}, timePerFrame)
     
     ull1.chain(ull2);
     ulr1.chain(ulr2);
     lll1.chain(lll2);
     uar1.chain(uar2);
     ual1.chain(ual2);
+    h1.chain(h2);
 
     var ulr3 = new TWEEN.Tween(upperLegR.rotation).to({x: -3.14/10}, timePerFrame)
     var llr3 = new TWEEN.Tween(lowerLegR.rotation).to({x: 3.14/2}, timePerFrame)
     var ull3 = new TWEEN.Tween(upperLegL.rotation).to({x: 0}, timePerFrame)
     var uar3 = new TWEEN.Tween(upperArnR.rotation).to({x: 0}, timePerFrame)
     var ual3 = new TWEEN.Tween(upperArnL.rotation).to({x: 0}, timePerFrame)
+    var h3 = new TWEEN.Tween(hat2.rotation).to({z: 0}, timePerFrame)
     
     lll2.chain(llr3);
     ulr2.chain(ulr3);
     ull2.chain(ull3);
     uar2.chain(uar3);
     ual2.chain(ual3);
+    h2.chain(h3);
     
     var ulr4 = new TWEEN.Tween(upperLegR.rotation).to({x: -3.14/10}, timePerFrame)
     var llr4 = new TWEEN.Tween(lowerLegR.rotation).to({x: 0}, timePerFrame)
     var ull4 = new TWEEN.Tween(upperLegL.rotation).to({x: 3.14/8}, timePerFrame)
     var uar4 = new TWEEN.Tween(upperArnR.rotation).to({x: 3.14/8}, timePerFrame)
     var ual4 = new TWEEN.Tween(upperArnL.rotation).to({x: -3.14/4}, timePerFrame)
+    var h4 = new TWEEN.Tween(hat2.rotation).to({z: 3.14/10}, timePerFrame)
 
     llr3.chain(llr4);
     ulr3.chain(ulr4);
     ull3.chain(ull4);
     uar3.chain(uar4);
     ual3.chain(ual4);
+    h3.chain(h4);
 
     var ull5 = new TWEEN.Tween(upperLegL.rotation).to({x: -3.14/10}, timePerFrame)
     var lll5 = new TWEEN.Tween(lowerLegL.rotation).to({x: 3.14/2}, timePerFrame)
     var ulr5 = new TWEEN.Tween(upperLegR.rotation).to({x: 0}, timePerFrame)
     var uar5 = new TWEEN.Tween(upperArnR.rotation).to({x: 0}, timePerFrame)
     var ual5 = new TWEEN.Tween(upperArnL.rotation).to({x: 0}, timePerFrame)
+    var h5 = new TWEEN.Tween(hat2.rotation).to({z: 0}, timePerFrame)
    
     llr4.chain(lll5);
     ulr4.chain(ull5);
     ull4.chain(ulr5);
     uar4.chain(uar5);
     ual4.chain(ual5);
+    h4.chain(h5);
     
     ull5.chain(ull2);
     ulr5.chain(ulr2);
     lll5.chain(lll2);
     uar5.chain(uar2);
     ual5.chain(ual2);
+    h5.chain(h2);
 
     var timePerFrame = 250;
     
@@ -627,6 +664,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
         ulr1.start();
         uar1.start();
         ual1.start();
+        h1.start();
     }
 
     window.addEventListener("keydown", function (event) {
@@ -675,30 +713,35 @@ textureLoader.load('images/fabric.avif', function(texture) {
             ulr1.stop();
             uar1.stop();
             ual1.stop();
+            h1.stop();
 
             ull2.stop();
             lll2.stop();
             ulr2.stop();
             uar2.stop();
             ual2.stop();
+            h2.stop();
 
             ull3.stop();
             llr3.stop();
             ulr3.stop();
             uar3.stop();
             ual3.stop();
+            h3.stop();
 
             ull4.stop();
             llr4.stop();
             ulr4.stop();
             uar4.stop();
             ual4.stop();
+            h4.stop();
 
             ull5.stop();
             lll5.stop();
             ulr5.stop();
             uar5.stop();
             ual5.stop();
+            h5.stop();
 
             
             new TWEEN.Tween(upperLegL.rotation).to({x: 0}, 200).start()
@@ -782,6 +825,7 @@ camera.position.z = -5;
 camera.position.y = .5;
 scene.add(camera);
 
+var spawnEnemies;
 var enemies = [];
 var gotSword = false;
 var inCave = false;
@@ -818,7 +862,7 @@ function animate() {
                     if (abdomen.hp > 0)
                         new TWEEN.Tween(abdomen.position).to(add(abdomen.position, mult(direction, 1.5)), 100).start();
                     else
-                        scene.remove(abdomen);
+                        location.reload();
                 }
             }
         });
@@ -843,18 +887,17 @@ function animate() {
                 crossGuard.rotation.x = 3.14/2;
                 crossGuard.position.y = -.25;
                 
-                var el1 = new TWEEN.Tween(elder.rotation).to({y: 3.14 + 3.14/4}, 1000)
-                var el2 = new TWEEN.Tween(elder.position).to({x: -5, z: -5}, 10000)
-                var el12 = new TWEEN.Tween(elderArmL.rotation).to({x: 3.14/8, z: 3.14/16}, 1000)
-                var el13 = new TWEEN.Tween(elderArmR.rotation).to({x: 3.14/8, z: -3.14/16}, 1000)
-                el1.chain(el2);
-                el1.start();
-                el12.start();
-                el13.start();
-                
+                elder.startTranslate();
                 elder.walkAnimR.start();
                 elder.walkAnimL.start();
             }
+        }
+
+        if (inCave){
+            var diff = add(abdomen.position, mult(triforce.position, -1));
+            var distance = dist(diff);
+            if (distance < .5)
+                location.reload();
         }
 
                 
@@ -876,7 +919,9 @@ function animate() {
                     }
                 }
             };
-            new TWEEN.Tween({num: 0}).to({num: nEnemies}, 10000).onUpdate(f).start();
+            spawnEnemies = new TWEEN.Tween({num: 0}).to({num: nEnemies}, 10000).onUpdate(f);
+            spawnEnemies.start();
+
             camera.position.y = 5;
             scene.remove(terrain);
             scene.remove(elder);
