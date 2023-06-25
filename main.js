@@ -120,7 +120,7 @@ for (var i = 0; i < positions.array.length/3; i++)
 
 positions.needsUpdate = true;
 terrainModel.computeVertexNormals();
-var abdomen;
+var player;
 var lowerArmL, elderArmR, elderArmL, elderHandL;
 var crossGuard;
 var elder;
@@ -283,6 +283,7 @@ textureLoader.load('images/wood.webp', function(texture) {
         ts1.start();
         return tree;
     }
+
     var tree = genTree();
     tree.position.z = 6;
     tree.position.x = 4.5;
@@ -438,12 +439,12 @@ textureLoader.load('images/fabric.avif', function(texture) {
     blade.position.y = abdomenHeight/2+.07
     blade.add(blade2);
 
-    abdomen = new THREE.Mesh( abdomenModel, greenFabric );
-    scene.add( abdomen );
-    abdomen.hp = 3;
+    player = new THREE.Mesh( abdomenModel, greenFabric );
+    scene.add( player );
+    player.hp = 3;
 
     const chest = new THREE.Mesh( chestModel, greenFabric );
-    abdomen.add(chest);
+    player.add(chest);
     chest.position.y = .35;
     
     var c1 = new TWEEN.Tween(chest.scale).to({y: 1.05}, 2000)
@@ -494,11 +495,11 @@ textureLoader.load('images/fabric.avif', function(texture) {
     hat.add(hat2);
 
     const upperLegR = new THREE.Mesh( upperLegModel, skin );
-    abdomen.add(upperLegR);
+    player.add(upperLegR);
     upperLegR.position.x = legWidth;
 
     const upperLegL = new THREE.Mesh( upperLegModel, skin );
-    abdomen.add(upperLegL);
+    player.add(upperLegL);
     upperLegL.position.x = -legWidth;
 
     const lowerLegR = new THREE.Mesh( lowerLegModel, skin );
@@ -524,7 +525,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
     bootR.rotation.x = 3.14/2;
 
     const upperArnR = new THREE.Mesh( upperArmModel, skin );
-    abdomen.add(upperArnR);
+    player.add(upperArnR);
     upperArnR.position.x = .3;
     upperArnR.position.y = abdomenHeight;
 
@@ -533,7 +534,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
     lowerArmR.position.y = -.25;
 
     const upperArnL = new THREE.Mesh( upperArmModel, skin );
-    abdomen.add(upperArnL);
+    player.add(upperArnL);
     upperArnL.position.x = -.3;
     upperArnL.position.y = abdomenHeight;
 
@@ -541,7 +542,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
     upperArnL.add(lowerArmL);
     lowerArmL.position.y = -.25;
 
-    for (let i = 0; i < abdomen.hp; i++){
+    for (let i = 0; i < player.hp; i++){
         var hpIndicator = new THREE.Mesh(hpIndicatorModel, new THREE.MeshBasicMaterial({color: 0xff0000}));
         camera.add(hpIndicator);
         hpIndicator.position.z = -.5;
@@ -553,6 +554,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
 
     }
 
+    //walking animation
     var walking = false;
     var timePerFrame = 250;
     var ull1 = new TWEEN.Tween(upperLegL.rotation).to({x: -3.14/10}, timePerFrame)
@@ -625,6 +627,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
     ual5.chain(ual2);
     h5.chain(h2);
 
+    //attack animation
     var timePerFrame = 250;
     
     var ull7 = new TWEEN.Tween(upperLegL.rotation).to({x: -3.14/8}, timePerFrame)
@@ -633,7 +636,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
     var llr7 = new TWEEN.Tween(lowerLegR.rotation).to({x: 0}, timePerFrame)
     var uar7 = new TWEEN.Tween(upperArnR.rotation).to({x: 3.14/4}, timePerFrame)
     var ual7 = new TWEEN.Tween(upperArnL.rotation).to({x: -3.14/2}, timePerFrame)
-    var a7 = new TWEEN.Tween(abdomen.position).to(add(abdomen.position, mult(bodyDirection, .2)), timePerFrame)
+    var a7 = new TWEEN.Tween(player.position).to(add(player.position, mult(bodyDirection, .2)), timePerFrame)
     
     var ull8 = new TWEEN.Tween(upperLegL.rotation).to({x: 0}, 200)
     var lll8 = new TWEEN.Tween(lowerLegL.rotation).to({x: 0}, 200)
@@ -651,7 +654,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
 
     function startWalk(){
         
-        abdomen.lookAt(abdomen.position.x + movDirection.x, abdomen.position.y + movDirection.y, abdomen.position.z + movDirection.z);
+        player.lookAt(player.position.x + movDirection.x, player.position.y + movDirection.y, player.position.z + movDirection.z);
         bodyDirection = Object.assign({}, movDirection);
 
         if (!walking)
@@ -708,6 +711,7 @@ textureLoader.load('images/fabric.avif', function(texture) {
             movDirection.z = 0;
             walking = false;
 
+            //stop all walking keyframes
             ull1.stop();
             lll1.stop();
             ulr1.stop();
@@ -757,10 +761,10 @@ textureLoader.load('images/fabric.avif', function(texture) {
     });
 
     window.addEventListener("click", function (event) {
-        a7 = new TWEEN.Tween(abdomen.position).to(add(abdomen.position, mult(bodyDirection, .2)), 600);
+        a7 = new TWEEN.Tween(player.position).to(add(player.position, mult(bodyDirection, .2)), 600);
         
         enemies.forEach(enemy => {
-            var diff = add(abdomen.position, mult(enemy.position, -1));
+            var diff = add(player.position, mult(enemy.position, -1));
             var distance = dist(diff);
             var direction = mult(diff, -1/distance);
             var bDir = mult(bodyDirection, 1/dist(bodyDirection));
@@ -837,11 +841,11 @@ scene.add( ambientLight );
 function animate() {
 	requestAnimationFrame( animate );
 	TWEEN.update()
-    if (abdomen != undefined && abdomen.hp > 0){
-        camera.lookAt(new THREE.Vector3().multiplyVectors(abdomen.position, new THREE.Vector3(.1)));
+    if (player != undefined && player.hp > 0){
+        camera.lookAt(new THREE.Vector3().multiplyVectors(player.position, new THREE.Vector3(.1)));
         enemies.forEach(enemy => {
             if (enemy.hp > 0){
-                var diff = add(abdomen.position, mult(enemy.position, -1));
+                var diff = add(player.position, mult(enemy.position, -1));
                 var distance = dist(diff);
                 var direction = mult(diff, 1/distance);
     
@@ -849,34 +853,34 @@ function animate() {
                 enemy.position.z += direction.z * .01;
     
                 if (distance < .3){
-                    var initR = abdomen.material.color.r + .01;
-                    var initG = abdomen.material.color.g;
-                    var initB = abdomen.material.color.b;
-                    var c1 = new TWEEN.Tween({r: initR}).to({r: 1}, 300).onUpdate(function (o) {abdomen.material.color.set(o.r, initG*Math.pow(initR/o.r,10), initB *Math.pow(initR/o.r,10))});
-                    var c2 = new TWEEN.Tween({r: 1}).to({r: initR}, 300).onUpdate(function (o) {abdomen.material.color.set(o.r, initG*Math.pow(initR/o.r,10), initB *Math.pow(initR/o.r,10))});
+                    var initR = player.material.color.r + .01;
+                    var initG = player.material.color.g;
+                    var initB = player.material.color.b;
+                    var c1 = new TWEEN.Tween({r: initR}).to({r: 1}, 300).onUpdate(function (o) {player.material.color.set(o.r, initG*Math.pow(initR/o.r,10), initB *Math.pow(initR/o.r,10))});
+                    var c2 = new TWEEN.Tween({r: 1}).to({r: initR}, 300).onUpdate(function (o) {player.material.color.set(o.r, initG*Math.pow(initR/o.r,10), initB *Math.pow(initR/o.r,10))});
                     c1.chain(c2);
                     c1.start();
-                    abdomen.hp -= 1;
-                    camera.remove(hpIndicators[abdomen.hp]);
+                    player.hp -= 1;
+                    camera.remove(hpIndicators[player.hp]);
     
-                    if (abdomen.hp > 0)
-                        new TWEEN.Tween(abdomen.position).to(add(abdomen.position, mult(direction, 1.5)), 100).start();
+                    if (player.hp > 0)
+                        new TWEEN.Tween(player.position).to(add(player.position, mult(direction, 1.5)), 100).start();
                     else
                         location.reload();
                 }
             }
         });
         
-        abdomen.position.z += movDirection.z * .015;
-        abdomen.position.x += movDirection.x * .015;
-        if (abdomen.position.z < -4 || (!inCave && dist(abdomen.position) > plainsRadius) || (inCave && abdomen.position.z > caveLength/2 || inCave && abdomen.position.x > caveLength/2 || inCave && abdomen.position.x < -caveLength/2)){
-            abdomen.position.z -= movDirection.z * .015;
-            abdomen.position.x -= movDirection.x * .015;
+        player.position.z += movDirection.z * .015;
+        player.position.x += movDirection.x * .015;
+        if (player.position.z < -4 || (!inCave && dist(player.position) > plainsRadius) || (inCave && player.position.z > caveLength/2 || inCave && player.position.x > caveLength/2 || inCave && player.position.x < -caveLength/2)){
+            player.position.z -= movDirection.z * .015;
+            player.position.x -= movDirection.x * .015;
         }
 
-        
+        //get sword
         if (!gotSword){
-            var diff = add(abdomen.position, mult(elder.position, -1));
+            var diff = add(player.position, mult(elder.position, -1));
             var distance = dist(diff);
             if (distance < .5){
                 gotSword = true;
@@ -894,21 +898,21 @@ function animate() {
         }
 
         if (inCave){
-            var diff = add(abdomen.position, mult(triforce.position, -1));
+            var diff = add(player.position, mult(triforce.position, -1));
             var distance = dist(diff);
             if (distance < .5)
                 location.reload();
         }
 
-                
-        var diff = add(abdomen.position, mult(cavePortal.position, -1));
+        //transition into the cave
+        var diff = add(player.position, mult(cavePortal.position, -1));
         var distance = dist(diff);
         if (distance < 2.5 && !inCave){
             inCave = true;
-            abdomen.position.z = -5;
-            abdomen.position.x = 0;
-            new TWEEN.Tween(abdomen.position).to({z: -4}, 1000).start();
-            let f = function (o) {
+            player.position.z = -5;
+            player.position.x = 0;
+            new TWEEN.Tween(player.position).to({z: -4}, 1000).start();
+            let spawnFunc = function (o) {
                 if (o.num >= 1){
                     var enemy = enemies[Math.floor(o.num) - 1];
                     if (enemy.spawned == false){
@@ -919,7 +923,7 @@ function animate() {
                     }
                 }
             };
-            spawnEnemies = new TWEEN.Tween({num: 0}).to({num: nEnemies}, 10000).onUpdate(f);
+            spawnEnemies = new TWEEN.Tween({num: 0}).to({num: nEnemies}, 10000).onUpdate(spawnFunc);
             spawnEnemies.start();
 
             camera.position.y = 5;
@@ -940,8 +944,6 @@ function animate() {
         }
     }
 
-	//scene.rotation.x += 0.01;
-	//scene.rotation.y += 0.01;
 	renderer.render( scene, camera );
 }
 animate();
